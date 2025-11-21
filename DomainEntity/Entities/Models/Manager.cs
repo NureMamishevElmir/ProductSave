@@ -1,14 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace DomainEntity.Models;
+namespace DomainEntity.Entities.Models;
 public class Manager
 {
     public Guid Id { get; set; }
+
+    [MaxLength(100)]
     public string Name { get; set; }
+
+    [MaxLength(100)]
     public string Sername { get; set; }
+
+    [MaxLength(20)]
     public string PhoneNumber { get; set; }
 }
