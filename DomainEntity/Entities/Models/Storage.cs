@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 namespace DomainEntity.Entities.Models;
 public class Storage
 {
-    public Guid Id { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
 
     [MaxLength(100)]
     public string Name { get; set; }
@@ -15,23 +15,17 @@ public class Storage
     public string Address { get; set; }
 
     [MaxLength(3)]
-    public double Temperature { get; set; }
+    public int Workers { get; set; }
 
-    [MaxLength(3)]
-    public double Humidity { get; set; }
-
-    [MaxLength(10)]
-    public int Worker { get; set; }
-
-    [ForeignKey(nameof(Manager))]
-    public Guid ManagerId { get; set; }
+    public DateTime CrearedAt { get; private set; } = DateTime.UtcNow;
 
     [JsonIgnore]
-    public virtual Manager Manager { get; set; }
+    public ICollection<User> Users { get; set; } = new Collection<User>();
 
     [JsonIgnore]
     public ICollection<Batch> Batches { get; set; } = new Collection<Batch>();
 
     [JsonIgnore]
-    public ICollection<Worker> Workers { get; set; } = new Collection<Worker>();
+    public ICollection<Sensor> Sensors { get; set; } = new Collection<Sensor>();
+
 }

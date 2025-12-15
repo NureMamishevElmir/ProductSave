@@ -18,12 +18,7 @@ public class Product
     [MaxLength(3)]
     public double Humidity { get; set; }
 
-    [MaxLength(20)]
-    public int Number { get; set; }
-
     public DateTime? UpdatedAt { get; set; }
-
-    public ProductStatus Status { get; set; }
 
     [JsonIgnore]
     public ICollection<Batch> Batches { get; set; } = new Collection<Batch>();
