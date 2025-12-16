@@ -1,12 +1,38 @@
-﻿using NLog;
+﻿using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using NLog;
 using NLog.Extensions.Logging;
 using NLog.Web;
+using Service;
 using Web.Api.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var jwt = builder.Configuration.GetSection("Jwt");
+var key = Encoding.UTF8.GetBytes(jwt["Key"]);
+
 builder.Logging.ClearProviders();
 builder.Host.UseNLog();
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(o =>
+    {
+        o.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwt["Issuer"],
+            ValidAudience = jwt["Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            ClockSkew = TimeSpan.FromSeconds(30)
+        };
+    });
+
+builder.Services.AddAuthorization();
 
 var logger = LogManager.Setup().LoadConfigurationFromSection(builder.Configuration).GetCurrentClassLogger();
 
@@ -16,8 +42,13 @@ try
 
     builder.ConfigureServices();
 
+    builder.Services.AddScoped<JwtTokenService>();
+
     var app = builder.Build();
     app.ConfigurePipeline();
+
+    app.UseAuthentication();
+    app.UseAuthorization();
 
     app.Run();
 }

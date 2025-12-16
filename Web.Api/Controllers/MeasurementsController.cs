@@ -24,7 +24,7 @@ public class MeasurementsController : ControllerBase
         return Ok(list);
     }
 
-    [HttpGet("{id:guid}")]
+    [HttpGet("{id}")]
     [ActionName(nameof(GetByIdAsync))]
     public async Task<ActionResult<Measurement>> GetByIdAsync(Guid id)
     {
@@ -62,7 +62,7 @@ public class MeasurementsController : ControllerBase
         return CreatedAtAction(nameof(GetByIdAsync), new { id = entity.Id }, entity);
     }
 
-    [HttpPut("{id:guid}")]
+    [HttpPut("{id}")]
     public async Task<IActionResult> UpdateAsync(Guid id, [FromBody] MeasurementDto dto)
     {
         var entity = await _db.Measurements.FindAsync(id);
@@ -83,7 +83,7 @@ public class MeasurementsController : ControllerBase
         return NoContent();
     }
 
-    [HttpDelete("{id:guid}")]
+    [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteAsync(Guid id)
     {
         var entity = await _db.Measurements.FindAsync(id);

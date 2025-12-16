@@ -1,6 +1,7 @@
 ﻿using DomainEntity.Entities.Dto;
 using DomainEntity.Entities.Models;
 using Infrastructure;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -34,6 +35,7 @@ public class ProductsController : ControllerBase
         return Ok(entity);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<ActionResult<Product>> CreateAsync([FromBody] ProductDto dto)
     {
@@ -51,6 +53,7 @@ public class ProductsController : ControllerBase
         return CreatedAtAction(nameof(GetByIdAsync), new { id = entity.Id }, entity);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateAsync(Guid id, [FromBody] ProductDto dto)
     {
@@ -68,6 +71,7 @@ public class ProductsController : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteAsync(Guid id)
     {

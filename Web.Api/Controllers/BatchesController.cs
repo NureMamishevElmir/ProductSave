@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using DomainEntity.Entities.Models;
 using DomainEntity.Entities.Dto;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Web.Api.Controllers;
 
@@ -17,6 +18,30 @@ public class BatchesController : ControllerBase
         _db = db;
     }
 
+    private IActionResult? ValidateDates(
+    DateTime? arrival,
+    DateTime? departure,
+    DateTime? expiration,
+    DateTime? updatedAt = null)
+    {
+        if (departure.HasValue && departure.Value < arrival)
+        {
+            return BadRequest("Departure date cannot be earlier than Arrival date.");
+        }
+
+        if (expiration.HasValue && expiration.Value < arrival)
+        {
+            return BadRequest("Expiration date cannot be earlier than Arrival date.");
+        }
+
+        if (updatedAt.HasValue && updatedAt.Value < arrival)
+        {
+            return BadRequest("UpdatedAt cannot be earlier than Arrival date.");
+        }
+
+        return null;
+    }
+
     [HttpGet]
     public async Task<ActionResult<List<Batch>>> GetAllAsync()
         => Ok(await _db.Batches
@@ -24,7 +49,7 @@ public class BatchesController : ControllerBase
             .Include(b => b.Product)
             .ToListAsync());
 
-    [HttpGet("{id:guid}")]
+    [HttpGet("{id}")]
     [ActionName(nameof(GetByIdAsync))]
     public async Task<ActionResult<Batch>> GetByIdAsync(Guid id)
     {
@@ -41,6 +66,7 @@ public class BatchesController : ControllerBase
         return Ok(entity);
     }
 
+    [Authorize(Roles = "Worker")]
     [HttpPost]
     public async Task<ActionResult<Batch>> CreateAsync([FromBody] BatchDto dto)
     {
@@ -66,13 +92,28 @@ public class BatchesController : ControllerBase
         return CreatedAtAction(nameof(GetByIdAsync), new { id = entity.Id }, entity);
     }
 
-    [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Worker")]
+    [HttpPut("{id}")]
     public async Task<IActionResult> UpdateAsync(Guid id, [FromBody] BatchUpdateDto dto)
     {
         var entity = await _db.Batches.FindAsync(id);
         if (entity == null)
         {
             return NotFound();
+        }
+
+        var updatedAt = DateTime.UtcNow;
+
+        var validationError = ValidateDates(
+            dto.Arrival,
+            dto.Departure,
+            dto.Expiration,
+            updatedAt
+        );
+
+        if (validationError != null)
+        {
+            return validationError;
         }
 
         entity.ProductId = dto.ProductId;
@@ -85,15 +126,14 @@ public class BatchesController : ControllerBase
         entity.Departure = dto.Departure;
         entity.Expiration = dto.Expiration;
 
-        entity.UpdatedAt = DateTime.UtcNow;
-
+        entity.UpdatedAt = updatedAt;
         entity.Number = dto.Number;
 
         await _db.SaveChangesAsync();
         return NoContent();
     }
 
-    [HttpDelete("{id:guid}")]
+    [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteAsync(Guid id)
     {
         var entity = await _db.Batches.FindAsync(id);

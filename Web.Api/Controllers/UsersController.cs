@@ -1,6 +1,7 @@
 ﻿using DomainEntity.Entities.Dto;
 using DomainEntity.Entities.Models;
 using Infrastructure;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +13,6 @@ namespace Web.Api.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly AppDbContext _db;
-    private readonly PasswordHasher<User> _passwordHasher = new();
 
     public UsersController(AppDbContext db)
     {
@@ -33,6 +33,7 @@ public class UsersController : ControllerBase
         return entity == null ? NotFound() : Ok(entity);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> CreateAsync([FromBody] UserCreateDto dto)
     {
@@ -49,10 +50,10 @@ public class UsersController : ControllerBase
             Surname = dto.Surname,
             Phone = dto.Phone,
             Role = dto.Role,
-            StorageId = dto.StorageId,
+            StorageId = dto.StorageId
         };
 
-        user.Password = _passwordHasher.HashPassword(user, dto.Password);
+        user.Password = BCrypt.Net.BCrypt.HashPassword(dto.Password);
 
         _db.Users.Add(user);
         await _db.SaveChangesAsync();

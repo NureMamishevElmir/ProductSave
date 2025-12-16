@@ -2,6 +2,7 @@
 using DomainEntity.Entities.Dto;
 using DomainEntity.Entities.Models;
 using Infrastructure;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -38,6 +39,7 @@ public class SensorsController : ControllerBase
         return Ok(entity);
     }
 
+    [Authorize(Roles = "Manager")]
     [HttpPost]
     public async Task<ActionResult<Sensor>> CreateAsync([FromBody] SensorDto dto)
     {
@@ -70,6 +72,7 @@ public class SensorsController : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Roles = "Manager")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteAsync(Guid id)
     {
