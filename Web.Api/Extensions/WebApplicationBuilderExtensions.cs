@@ -48,10 +48,16 @@ public static class WebApplicationBuilderExtensions
 
     public static void ConfigurePipeline(this WebApplication app)
     {
-        if (app.Environment.IsDevelopment())
+        var swaggerEnabled = app.Configuration.GetValue<bool>("Swagger:Enabled");
+
+        if (swaggerEnabled || app.Environment.IsDevelopment())
         {
             app.UseSwagger();
-            app.UseSwaggerUI();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Web.Api v1");
+                c.RoutePrefix = "swagger";
+            });
         }
 
         //app.UseHttpsRedirection();
@@ -61,4 +67,5 @@ public static class WebApplicationBuilderExtensions
 
         app.MapControllers();
     }
+
 }
