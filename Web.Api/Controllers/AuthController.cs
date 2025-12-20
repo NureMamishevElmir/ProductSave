@@ -22,7 +22,7 @@ public class AuthController : ControllerBase
         _jwt = jwt;
     }
 
-    [HttpPost("login")]
+    [HttpPost("Login")]
     public async Task<ActionResult<AuthResponseDto>> LoginAsync([FromBody] LoginDto dto)
     {
         var user = await _db.Users.FirstOrDefaultAsync(x => x.Phone == dto.Phone);
