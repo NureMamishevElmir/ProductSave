@@ -13,6 +13,8 @@ var jwt = builder.Configuration.GetSection("Jwt");
 var key = Encoding.UTF8.GetBytes(jwt["Key"]);
 
 builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
 builder.Host.UseNLog();
 
 builder.Services
@@ -49,6 +51,27 @@ try
 
     app.UseAuthentication();
     app.UseAuthorization();
+
+    app.UseExceptionHandler(errorApp =>
+    {
+        errorApp.Run(async context =>
+        {
+            var logger = context.RequestServices
+                .GetRequiredService<ILogger<Program>>();
+
+            var exception = context.Features
+                ?.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()
+                ?.Error;
+
+            if (exception != null)
+            {
+                logger.LogError(exception, "UNHANDLED EXCEPTION");
+            }
+
+            context.Response.StatusCode = 500;
+            await context.Response.WriteAsync("Internal Server Error");
+        });
+    });
 
     app.Run();
 }
