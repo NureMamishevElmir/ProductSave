@@ -8,13 +8,10 @@ public class Storage
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    [MaxLength(100)]
     public string Name { get; set; }
 
-    [MaxLength(100)]
     public string Address { get; set; }
 
-    [MaxLength(3)]
     public int Workers { get; set; }
 
     public DateTime CrearedAt { get; private set; } = DateTime.UtcNow;

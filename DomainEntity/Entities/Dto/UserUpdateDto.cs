@@ -15,5 +15,5 @@ public class UserUpdateDto
     public Guid StorageId { get; set; }
 
     [JsonIgnore]
-    public virtual Storage Storage { get; set; }
+    public virtual Storage? Storage { get; set; }
 }

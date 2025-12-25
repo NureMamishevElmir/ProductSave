@@ -9,8 +9,6 @@ namespace DomainEntity.Entities.Models;
 public class Batch
 {
     public Guid Id { get; set; }
-
-    [MaxLength(100)]
     public int? Number { get; set; }
     public BatchStatus Status { get; set; }
     public DateTime? Arrival { get; set; }

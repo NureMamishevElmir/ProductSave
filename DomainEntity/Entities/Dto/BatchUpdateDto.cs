@@ -9,7 +9,6 @@ public class BatchUpdateDto
     public BatchStatus Status { get; set; }
     public ProductStatus ProductStatus { get; set; }
 
-    [MaxLength(20)]
     public int? Number { get; set; }
 
     public DateTime? Arrival { get; set; }
