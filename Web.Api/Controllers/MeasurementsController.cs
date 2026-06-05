@@ -3,6 +3,7 @@ using DomainEntity.Entities.Models;
 using Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Service;
 
 namespace Web.Api.Controllers;
 
@@ -11,10 +12,12 @@ namespace Web.Api.Controllers;
 public class MeasurementsController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly TemperatureValidationService _temperatureValidator;
 
-    public MeasurementsController(AppDbContext db)
+    public MeasurementsController(AppDbContext db, TemperatureValidationService temperatureValidator)
     {
         _db = db;
+        _temperatureValidator = temperatureValidator;
     }
 
     [HttpGet]
@@ -46,6 +49,14 @@ public class MeasurementsController : ControllerBase
             return BadRequest("SensorId not found.");
         }
 
+        if (dto.Temperature.HasValue)
+        {
+            if (!_temperatureValidator.ValidateTemperature(dto.Temperature, out var errorMessage, allowNull: true))
+            {
+                return BadRequest(errorMessage);
+            }
+        }
+
         var entity = new Measurement
         {
             Id = Guid.NewGuid(),
@@ -69,6 +80,14 @@ public class MeasurementsController : ControllerBase
         if (entity == null)
         {
             return NotFound();
+        }
+
+        if (dto.Temperature.HasValue)
+        {
+            if (!_temperatureValidator.ValidateTemperature(dto.Temperature, out var errorMessage, allowNull: true))
+            {
+                return BadRequest(errorMessage);
+            }
         }
 
         entity.SensorId = dto.SensorId;

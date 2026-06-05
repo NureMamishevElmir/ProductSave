@@ -70,6 +70,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPut("{id}")]
+
     public async Task<IActionResult> UpdateAsync(Guid id, [FromBody] UserUpdateDto dto)
     {
         var entity = await _db.Users.FindAsync(id);

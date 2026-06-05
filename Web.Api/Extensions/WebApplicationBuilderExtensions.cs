@@ -1,4 +1,5 @@
 ﻿using Infrastructure.DI;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.OpenApi.Models;
 
 namespace Web.Api.Extensions;
@@ -44,6 +45,16 @@ public static class WebApplicationBuilderExtensions
         });
 
         services.ConfigureInfrastructureDI(configuration);
+
+        // Health checks for Kubernetes liveness/readiness probes.
+        // "ready" tagged checks gate traffic; liveness has no checks so a busy
+        // pod is never killed for failing a dependency it doesn't own.
+        services
+            .AddHealthChecks()
+            .AddNpgSql(
+                connectionString: configuration.GetConnectionString("DefaultConnection")!,
+                name: "postgres",
+                tags: new[] { "ready" });
     }
 
     public static void ConfigurePipeline(this WebApplication app)
@@ -62,8 +73,22 @@ public static class WebApplicationBuilderExtensions
 
         //app.UseHttpsRedirection();
 
+        app.UseRouting();
+
         app.UseAuthentication();
         app.UseAuthorization();
+
+        // Liveness: process is up and able to respond (no dependency checks).
+        app.MapHealthChecks("/health/live", new HealthCheckOptions
+        {
+            Predicate = _ => false
+        });
+
+        // Readiness: only receive traffic when the database is reachable.
+        app.MapHealthChecks("/health/ready", new HealthCheckOptions
+        {
+            Predicate = check => check.Tags.Contains("ready")
+        });
 
         app.MapControllers();
     }

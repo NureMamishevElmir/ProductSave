@@ -1,0 +1,61 @@
+# Horizontal-scaling demo with Docker Compose.
+#
+# Topology:  client -> nginx (load balancer, :8080) -> N x api -> postgres
+#
+# The `api` service publishes no host port, so it can be scaled to any number
+# of replicas:  docker compose -p productsave up -d --scale api=4
+# nginx round-robins across whatever api containers exist (see nginx.conf).
+services:
+  postgres:
+    image: postgres:16-alpine
+    # Raise max_connections above the default 100 so several API replicas, each
+    # with its own Npgsql pool, can connect under load (SQLSTATE 53300 guard).
+    command: ["-c", "max_connections=300"]
+    environment:
+      POSTGRES_USER: productsave
+      POSTGRES_PASSWORD: productsave-strong-pass
+      POSTGRES_DB: productsave
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U productsave -d productsave"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    image: productsave-api:latest
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: "http://+:8080"
+      # EF Core 8 takes a migration lock, so concurrent replicas are safe.
+      RunMigrations: "true"
+      Swagger__Enabled: "true"
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Username=productsave;Password=productsave-strong-pass;Database=productsave;Maximum Pool Size=25"
+      Jwt__Key: "lt3sPBPn8IiCuaQKIOwrk9q6jqaUkPyOcUFq9I9KSZz"
+      Jwt__Issuer: "ProductSave"
+      Jwt__Audience: "ProductSave"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - "8080"
+    # A tight CPU limit per replica makes the API the resource that saturates
+    # first — so adding replicas visibly raises throughput.
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:80"          # client entrypoint: http://localhost:8080
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

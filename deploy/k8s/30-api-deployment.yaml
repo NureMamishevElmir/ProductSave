@@ -1,0 +1,83 @@
+# The stateless API. This is the unit we scale horizontally: every replica is
+# identical, holds no session state, and any load balancer can route any
+# request to any pod. `kubectl scale` / the HPA change `replicas` and the
+# Service (40-api-service.yaml) spreads traffic across whatever pods exist.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: productsave
+  labels:
+    app: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      # Wait for Postgres to accept TCP connections before the app starts,
+      # so EF Core migrations on the first pod don't fail on a cold database.
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "waiting for postgres:5432...";
+              until nc -z postgres 5432; do sleep 2; done;
+              echo "postgres is up";
+      containers:
+        - name: api
+          image: productsave-api:latest
+          imagePullPolicy: IfNotPresent   # use the locally built image, don't pull from a registry
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Production"
+            - name: ASPNETCORE_URLS
+              value: "http://+:8080"
+            # Apply EF Core migrations on startup. EF Core 8 takes a migration
+            # lock, so even with many replicas only one actually applies them.
+            - name: RunMigrations
+              value: "true"
+            # Expose Swagger in the cluster so the demo can hit the UI.
+            - name: Swagger__Enabled
+              value: "true"
+          envFrom:
+            - secretRef:
+                name: api-secret
+          resources:
+            # requests = what the scheduler reserves and what the HPA divides
+            # CPU usage by; limits = hard ceiling. A tight CPU limit makes the
+            # API the resource that saturates first, which is what we want to
+            # demonstrate by scaling out.
+            requests:
+              cpu: "200m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          startupProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 2
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            periodSeconds: 5
+            failureThreshold: 3

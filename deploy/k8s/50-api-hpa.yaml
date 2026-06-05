@@ -1,0 +1,39 @@
+# Horizontal Pod Autoscaler: the automatic version of `kubectl scale`.
+# It watches average CPU across api pods and adds/removes replicas to keep it
+# near the target. Requires metrics-server in the cluster (see deploy/README.md).
+#
+# Demo flow: start the k6 load test -> CPU climbs past 60% of the 200m request
+# -> HPA scales 2 -> ... -> up to 10 pods -> RPS rises. Stop the test -> after
+# the stabilization window the HPA scales back down.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api
+  namespace: productsave
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 30

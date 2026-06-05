@@ -4,6 +4,7 @@ using Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Service;
 
 namespace Web.Api.Controllers;
 
@@ -12,10 +13,12 @@ namespace Web.Api.Controllers;
 public class ProductsController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly TemperatureValidationService _temperatureValidator;
 
-    public ProductsController(AppDbContext db)
+    public ProductsController(AppDbContext db, TemperatureValidationService temperatureValidator)
     {
         _db = db;
+        _temperatureValidator = temperatureValidator;
     }
 
     [HttpGet]
@@ -39,6 +42,11 @@ public class ProductsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Product>> CreateAsync([FromBody] ProductDto dto)
     {
+        if (!_temperatureValidator.ValidateTemperature(dto.Temperature, out var errorMessage))
+        {
+            return BadRequest(errorMessage);
+        }
+
         var entity = new Product
         {
             Id = Guid.NewGuid(),
@@ -61,6 +69,11 @@ public class ProductsController : ControllerBase
         if (entity == null)
         {
             return NotFound();
+        }
+
+        if (!_temperatureValidator.ValidateTemperature(dto.Temperature, out var errorMessage))
+        {
+            return BadRequest(errorMessage);
         }
 
         entity.Name = dto.Name;

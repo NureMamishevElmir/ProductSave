@@ -1,0 +1,19 @@
+# The load balancer in front of the API replicas.
+# On Docker Desktop a LoadBalancer Service is published on localhost, so the
+# API is reachable at http://localhost/ . kube-proxy distributes incoming
+# connections across all Ready api pods (round-robin per connection).
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: productsave
+  labels:
+    app: api
+spec:
+  type: LoadBalancer
+  selector:
+    app: api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
